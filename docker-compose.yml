@@ -1,0 +1,20 @@
+services:
+  go-listener:
+    build: ./go-listener
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./go-listener/state.json:/app/state.json
+    env_file:
+      - .env
+    environment:
+      - AI_ANALYZER_URL=http://ai-analyzer:8000
+    depends_on:
+      - ai-analyzer
+    restart: unless-stopped
+
+  ai-analyzer:
+    build: ./analyzer
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,17 +32,46 @@ type State struct {
 	LastBlock uint64 `json:"last_block"`
 }
 
-func loadConfig(path string) (*Config, error) {
+// Add this function to load config from env or file
+func loadConfig() (*Config, error) {
+	// First try environment variables
+	rpcURL := os.Getenv("RPC_URL")
+	aiAnalyzerURL := os.Getenv("AI_ANALYZER_URL")
+
+	if rpcURL != "" {
+		// Use environment variables
+		wallets := strings.Split(os.Getenv("WALLETS"), ",")
+		if len(wallets) == 0 {
+			wallets = []string{"0x1234567890abcdef1234567890abcdef12345678"}
+		}
+
+		pollInterval := 15
+		if pi := os.Getenv("POLL_INTERVAL"); pi != "" {
+			if piVal, err := strconv.Atoi(pi); err == nil {
+				pollInterval = piVal
+			}
+		}
+
+		return &Config{
+			RPCURL:        rpcURL,
+			Wallets:       wallets,
+			PollInterval:  pollInterval,
+			AIAnalyzerURL: aiAnalyzerURL,
+		}, nil
+	}
+
+	// Fall back to config file
+	return loadConfigFromFile("config.yaml")
+}
+
+func loadConfigFromFile(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	var cfg Config
 	err = yaml.Unmarshal(data, &cfg)
-	if err != nil {
-		return nil, err
-	}
-	return &cfg, nil
+	return &cfg, err
 }
 
 func loadState(path string) (uint64, error) {
@@ -185,7 +216,7 @@ func fetchNewTransactions(client *ethclient.Client, wallets []string, lastBlock 
 }
 
 func main() {
-	cfg, err := loadConfig("config.yaml")
+	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}

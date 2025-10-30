@@ -1,0 +1,12 @@
+# Your current config (unchanged)
+rpc_url: "https://eth-sepolia.g.alchemy.com/v2/7T00tANKpQLk38Fb7EKdL"
+wallets:
+  - "0x1234567890abcdef1234567890abcdef12345678"
+  - "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+poll_interval: 15 # seconds
+
+
+
+
+
+
