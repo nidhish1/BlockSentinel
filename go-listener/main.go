@@ -5,13 +5,49 @@ import (
 	"log"
 	"time"
 
+	"context"
+	"net/http"
+
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/jackc/pgx/v5/pgxpool"
+	dbpkg "github.com/nidhish1/BlockSentinel/go-listener/db"
+	routes "github.com/nidhish1/BlockSentinel/go-listener/routes"
+	utilpkg "github.com/nidhish1/BlockSentinel/go-listener/util"
 )
 
 func main() {
 	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Optional: connect to Postgres if configured (with retry/backoff)
+	var dbpool *pgxpool.Pool
+	if cfg.DatabaseURL != "" {
+		pool, dbErr := utilpkg.ConnectPostgresWithBackoff(context.Background(), cfg.DatabaseURL, 60*time.Second)
+		if dbErr != nil {
+			log.Printf("⚠️  Postgres unavailable: %v", dbErr)
+		} else {
+			log.Printf("✅ Connected to Postgres")
+			// Run DB migrations at startup
+			if err := utilpkg.RunMigrations(cfg.DatabaseURL, "./migrations"); err != nil {
+				log.Printf("⚠️  Migrations failed: %v", err)
+			} else {
+				log.Printf("✅ Database migrations applied")
+			}
+			mux := http.NewServeMux()
+			routes.RegisterRoutes(mux, pool)
+			go func() {
+				log.Printf("🌐 HTTP server listening on :8080")
+				if err := http.ListenAndServe(":8080", mux); err != nil {
+					log.Printf("HTTP server error: %v", err)
+				}
+			}()
+			dbpool = pool
+			defer pool.Close()
+		}
+	} else {
+		log.Printf("ℹ️  DATABASE_URL not set; skipping Postgres connection")
 	}
 
 	client, err := ethclient.Dial(cfg.RPCURL)
@@ -39,7 +75,15 @@ func main() {
 
 	// Main monitoring loop
 	for {
-		newLastBlock, err := fetchNewTransactions(client, cfg.Wallets, lastBlock, cfg.AIAnalyzerURL)
+		// Determine wallets source: prefer DB, fallback to config
+		wallets := cfg.Wallets
+		if dbpool != nil {
+			if w, derr := dbpkg.FetchMonitoredWallets(context.Background(), dbpool); derr == nil && len(w) > 0 {
+				wallets = w
+			}
+		}
+
+		newLastBlock, err := fetchNewTransactions(client, wallets, lastBlock, cfg.AIAnalyzerURL)
 		if err != nil {
 			log.Printf("Error fetching transactions: %v", err)
 		} else if newLastBlock > lastBlock {

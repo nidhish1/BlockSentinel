@@ -13,12 +13,17 @@ type Config struct {
 	Wallets       []string `yaml:"wallets"`
 	PollInterval  int      `yaml:"poll_interval"`
 	AIAnalyzerURL string   `yaml:"ai_analyzer_url,omitempty"`
+	DatabaseURL   string   `yaml:"database_url,omitempty"`
 }
 
 func loadConfig() (*Config, error) {
 	// First try environment variables
 	rpcURL := os.Getenv("RPC_URL")
 	aiAnalyzerURL := os.Getenv("AI_ANALYZER_URL")
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		dbURL = os.Getenv("POSTGRES_DSN")
+	}
 
 	if rpcURL != "" {
 		// Use environment variables
@@ -39,6 +44,7 @@ func loadConfig() (*Config, error) {
 			Wallets:       wallets,
 			PollInterval:  pollInterval,
 			AIAnalyzerURL: aiAnalyzerURL,
+			DatabaseURL:   dbURL,
 		}, nil
 	}
 

@@ -1,0 +1,93 @@
+{
+  "info": {
+    "_postman_id": "a2f2a0f4-6f0c-4c48-9a0a-6b7f7b2db111",
+    "name": "BlockSentinel - go-listener API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create/Upsert Address",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"address\": \"0xabc123...\",\n  \"labels\": [\"trusted\", \"vip\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addresses",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "addresses" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Address",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/addresses/:address",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "addresses", ":address" ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Set a default param for quick testing",
+              "if (!pm.request.url.variables.has('address')) {",
+              "  pm.request.url.variables.add({ key: 'address', value: '0xabc123...' });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update Address",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"labels\": [\"trusted\", \"vip\", \"high_value\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addresses/:address",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "addresses", ":address" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Address",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/addresses/:address",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "addresses", ":address" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
+
+
